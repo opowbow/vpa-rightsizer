@@ -1,6 +1,6 @@
 # 📊 GKE VPA Rightsizer Agent
 
-An intelligent, multi-agent automated pipeline built with the **Google Agent Development Kit (ADK)**. It automates GKE cluster resource analysis, queries Vertical Pod Autoscaler (VPA) metrics, generates cleaned and updated Kubernetes manifests, compiles an interactive web dashboard, and deploys it to Google Cloud Run.
+An intelligent, multi-agent automated pipeline built with the **Google Agent Development Kit (ADK)**. It automates GKE cluster resource analysis, queries Vertical Pod Autoscaler (VPA) metrics, generates **newly optimized Kubernetes deployment manifests with updated CPU and memory requests**, compiles an interactive web dashboard, and deploys it to Google Cloud Run.
 
 ---
 
@@ -12,8 +12,45 @@ An intelligent, multi-agent automated pipeline built with the **Google Agent Dev
   * Extracts active Vertical Pod Autoscaler (VPA) targets, lower bounds, and upper bounds.
   * Dynamically queries **Cloud Monitoring fallback metrics** for workloads missing VPA definitions.
   * Prompts for missing Project IDs on the fly using the built-in `request_input` tool.
+* **Optimized Manifest Generation**: Automatically outputs **new deployment manifest files** with updated container `resources.requests.cpu` and `resources.requests.memory` values applied directly based on recommendations.
 * **Dataset & Asset Builder (`web_builder`)**: Parses raw scraper findings into structured JSON and copies updated, clean deployment manifests.
 * **Cloud Run Deployment (`cloud_run_deployer`)**: Deploys the Express-based interactive reporting dashboard to Google Cloud Run.
+
+
+---
+
+## 📝 Auto-Generated Manifest Right-Sizing Example
+
+To ensure GKE workloads are correctly sized without manual intervention, the pipeline automatically writes **updated, clean deployment manifests** for each analyzed workload. 
+
+When a VPA recommendation or Cloud Monitoring metric is resolved, the agent:
+1. Strips out read-only cluster status, uid, system annotations, and managed fields.
+2. Directly overrides the container's `resources.requests.cpu` and `resources.requests.memory` fields in the template spec with the optimized recommendations.
+
+Below is an example of how a deployment manifest (e.g., `emailservice.yaml`) is modified during the pipeline run:
+
+```diff
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
+   name: emailservice
+   namespace: default
+ spec:
+   replicas: 1
+   template:
+     spec:
+       containers:
+       - name: server
+         image: gcr.io/google-samples/microservices-demo/emailservice:v0.3.5
+         resources:
+           requests:
+-            cpu: 100m
+-            memory: 64Mi
++            cpu: 80m      # Automatically updated to VPA target recommendation
++            memory: 120Mi # Automatically updated to VPA target recommendation
+```
+
+These ready-to-apply files are saved locally under the git-ignored `results/vpa-<project_id>/vpa-<cluster_name>/<namespace>/` directory and served interactively via the Web Dashboard.
 
 ---
 
